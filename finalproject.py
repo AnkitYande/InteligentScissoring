@@ -39,7 +39,7 @@ def main():
 
     ########## preprocessing ##########
     
-    img = cv.imread("./woman.jpg") 
+    img = cv.imread("./imgs/woman.jpg") 
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # convert to graysacle
     # img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
     img = cv.GaussianBlur(img,(5,5),cv.BORDER_DEFAULT) # Gaussian Blur the image
