@@ -24,20 +24,29 @@ import cv2 as cv # OpenCV
 #         drawing=False
 #         cv.line(img,(pt1_x,pt1_y),(x,y),color=(255,0,0),thickness=3)   
 
+
+
+
 def mouse_callback(event,x,y,flags,param):
     if event== 1:   #cv.EVENT_LBUTTONDOWN
          print("New seed at:", x,y)
     elif event== 0: #cv.EVENT_MOUSEMOVE
           print(x,y)
 
-def main():
-    #preprocessing
-    img = cv.imread("./woman.jpg") 
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) #convert to graysacle
-    # img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
-    img = cv.GaussianBlur(img,(5,5),cv.BORDER_DEFAULT) #Gaussian Blur the image
 
-    #edge detection
+
+def main():
+
+    ########## preprocessing ##########
+    
+    img = cv.imread("./woman.jpg") 
+    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # convert to graysacle
+    # img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
+    img = cv.GaussianBlur(img,(5,5),cv.BORDER_DEFAULT) # Gaussian Blur the image
+
+    ######### edge detection ##########
+    
+    #Horrizontal and Vertical Sobel kernels
     kernelH = np.array([[-1, 0, 1],
                         [-2, 0, 2],
                         [-1, 0, 1]]) 
@@ -46,6 +55,7 @@ def main():
                         [ 0,  0,  0],
                         [-1, -2, -1]])
 
+    #aply kernels to image
     w,h = img.shape
     imgFinal = np.zeros_like(img)
     for y in range(3, h-2):
