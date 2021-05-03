@@ -4,6 +4,9 @@ import queue
 from collections import defaultdict
 import sys
  
+
+readyToDraw = False
+
 class Heap():
  
     def __init__(self):
@@ -219,60 +222,72 @@ class Graph():
                     # in min heap also
                     minHeap.decreaseKey(v, dist[v])
  
-        self.printSolution(src, dist)
+        #self.printSolution(src, dist)
  
 
 
 seed_x = seed_y = None
+dijkstraCompleted = False
+# img = []
+
 def mouse_callback(event,x,y,flags,param):
-    # print(event)
+    global img
+    global imgOG
+
     h,w = imgFinal.shape
     if event== 1:   #cv.EVENT_LBUTTONDOWN
+        global dijkstraCompleted
+        dijkstraCompleted = False
         global seed_x 
         seed_x = x
         global seed_y 
         seed_y = y
-        seed = 5 * 24 + 17
-        cv.circle(img,(17,5),2,(0,255,0),-1)
-        # seed = x+y*w
+        # seed = 5 * 24 + 17
+        seed = x+y*w
+        
 
         print("New seed at:", x,y, w, h, seed)
         print("performing dijkstra")
         g.dijkstra(seed)
+        dijkstraCompleted = True
         print("dijkstra complete")
-    # elif event== 0: #cv.EVENT_MOUSEMOVE
-        # i = x+y*w
-        i =  20 * 24 + 21
-        cv.circle(img,(21,20),2,(0,255,0),-1)
-        while(g.parent[i] != -1):
-            i = g.parent[i]
-            pix_y = i // w
-            pix_x = i - pix_y*w
-            print(pix_x,pix_y, i)
-            cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1)
+    elif event== 0: #cv.EVENT_MOUSEMOVE
+        if dijkstraCompleted :
+            i = x+y*w
+            # i =  20 * 24 + 21
+            img = cv.imread("./imgs/owl.png") 
+            cv.circle(img,(seed_x,seed_y),5,(0,255,0),-1)
 
-        # print("end at", x,y)
-        # mouse_x = x
-        # mouse_y = y
-        # cv.circle(imgFinal,(x,y),10,(255,0,0),-1)
-        # if(seed_x != None and seed_y != None):
-            # path = ourDijkstra(imgFinal, seed_x, seed_y, x, y)
-            # print(len(path))
-            # for pixel in path:
-            #     cv.circle(imgFinal,(pixel[0],pixel[1]),1,(255,0,0),-1)
-        # w,h = imgFinal.shape
+            while(not len(g.parent) == 0 and g.parent[i] != -1):
+                i = g.parent[i]
+                pix_y = i // w
+                pix_x = i - pix_y*w
+                # print(pix_x,pix_y, i)
+                cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1)
+
+            cv.imshow('image',img)
+            # print("end at", x,y)
+            # mouse_x = x
+            # mouse_y = y
+            # cv.circle(imgFinal,(x,y),10,(255,0,0),-1)
+            # if(seed_x != None and seed_y != None):
+                # path = ourDijkstra(imgFinal, seed_x, seed_y, x, y)
+                # print(len(path))
+                # for pixel in path:
+                #     cv.circle(imgFinal,(pixel[0],pixel[1]),1,(255,0,0),-1)
+            # w,h = imgFinal.shape
 
 
 
 ########## preprocessing ##########
 
 print("loading image")
-img = cv.imread("./imgs/pix.png") 
+img = cv.imread("./imgs/owl.png") 
+imgOG = cv.imread("./imgs/owl.png") 
 
 print("preprocessing")
 img2 = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # convert to graysacle
-# img = cv.cvtColor(img, cv.COLOR_GRAY2RGB)
-# img2 = cv.GaussianBlur(img2,(5,5),cv.BORDER_DEFAULT) # Gaussian Blur the image
+img2 = cv.GaussianBlur(img2,(5,5),cv.BORDER_DEFAULT) # Gaussian Blur the image
 print("preprocessing completed")
 
 ######### edge detection ##########
@@ -297,10 +312,10 @@ for y in range(3, h-2):
                                 [ img2[x-1][y+1],  img2[x][y+1],  img2[x+1][y+1]]])
         
         transformPixelsV = kernelV * localPixels
-        scoreV = transformPixelsV.sum()/4
+        scoreV = transformPixelsV.sum()
         
         transformPixelsH = kernelH * localPixels
-        scoreH = transformPixelsH.sum()/4
+        scoreH = transformPixelsH.sum()
         
         imgFinal[x][y] = ( scoreV**2 + scoreH**2 )**0.5
 
@@ -328,19 +343,25 @@ for y in range(h):
             for a in range(x-1, x+2):
                 if (a < 0 or a >= w or b < 0 or b >= h or (y == b and x == a)): # Check that [row, col] is not out of bounds
                     continue
-                g.addEdge(y*w+x, b*w+a, abs(imgFinal[a][b]))
+                g.addEdge(y*w+x, b*w+a, abs(imgFinal[b][a]))
 print("graph for scissoring completed")
+readyToDraw = True
+
 
 cv.namedWindow('image post detection')
 cv.namedWindow('image')
 
-seed = cv.setMouseCallback('image', mouse_callback)
-
 while(True):
-    cv.imshow('image',img)
     cv.imshow('image post detection',imgFinal)
+    
+    if(readyToDraw):
+        seed = cv.setMouseCallback('image', mouse_callback)
+    cv.imshow('image',img)
+        
     if cv.waitKey(20) & 0xFF == 27:
         break
+    
+    cv.imshow('image',img)
 
 cv.destroyAllWindows()
 
