@@ -30,17 +30,14 @@ def mouse_callback(event,x,y,flags,param):
     elif event== 0: #cv.EVENT_MOUSEMOVE
         if dijkstraCompleted :
             i = x+y*w
-            img = cv.imread("./imgs/owl.png") 
+            img = cv.imread("./imgs/owl.png") #reset image
             cv.circle(img,(seed_x,seed_y),5,(0,255,0),-1)
 
             while(not len(g.parent) == 0 and g.parent[i] != -1):
                 i = g.parent[i]
                 pix_y = i // w
                 pix_x = i - pix_y*w
-                cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1)
-
-            # cv.imshow('image',img)
-
+                cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path
 
 
 
