@@ -6,13 +6,17 @@ from graph import Graph
 
 readyToDraw = False
 dijkstraCompleted = False
-
+allPaths = []
 
 def mouse_callback(event,x,y,flags,param):
     global img
+    global imgOG
+    global g
+    global allPaths
     h,w = imgFinal.shape
     
     if event== 1:   #cv.EVENT_LBUTTONDOWN
+        imgOG = img.copy()
         global dijkstraCompleted
         dijkstraCompleted = False
         global seed_x 
@@ -21,8 +25,9 @@ def mouse_callback(event,x,y,flags,param):
         seed_y = y
         seed = x+y*w
         print("New seed at:", x,y, seed)
-
         print("performing dijkstra")
+        allPaths += g.parent
+        g.parent = []
         g.dijkstra(seed)
         dijkstraCompleted = True
         print("dijkstra complete")
@@ -30,14 +35,15 @@ def mouse_callback(event,x,y,flags,param):
     elif event== 0: #cv.EVENT_MOUSEMOVE
         if dijkstraCompleted :
             i = x+y*w
-            img = cv.imread("./imgs/owl.png") #reset image
-            cv.circle(img,(seed_x,seed_y),5,(0,255,0),-1)
+            img = imgOG.copy() #reset image
+            cv.circle(img,(seed_x,seed_y),5,(0,255,0),-1) # change to coloring in the pixels not drawing circles
 
             while(not len(g.parent) == 0 and g.parent[i] != -1):
                 i = g.parent[i]
                 pix_y = i // w
                 pix_x = i - pix_y*w
-                cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path
+                cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path 
+                # change to coloring in the pixels not drawing circles
 
 
 
@@ -45,6 +51,7 @@ def mouse_callback(event,x,y,flags,param):
 ########## preprocessing ##########
 print("loading image")
 img = cv.imread("./imgs/owl.png") 
+imgOG = cv.imread("./imgs/owl.png") 
 
 print("preprocessing")
 img2 = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # convert to graysacle
@@ -108,7 +115,29 @@ while(True):
     
     if(readyToDraw):
         seed = cv.setMouseCallback('image', mouse_callback)
-        
+    if cv.waitKey(20) & 0xFF == 13:
+        print("enter!")
+        readyToDraw = False
+        allPaths.sort()
+        index = 0
+        # DO SIMPLER VERSION DO WITH A RECTANGLE FIRST -- color all pixels to white
+        for y in range(h):
+            left = y*w
+            right = (y+1)*w
+            while(allPaths[index] < left): # figure out how to do this, error is "TypeError: '<' not supported between instances of 'list' and 'int'"
+                index += 1
+            left = index
+            while(allPaths[index] < right):
+                index += 1
+            right = index
+
+            #convert
+            left_x = left - int(left // y)
+            right_x = right - int(right // y)
+            for x in range(left_x, right_x):
+               img[x][y] = 255
+            
+
     if cv.waitKey(20) & 0xFF == 27:
         break
     
