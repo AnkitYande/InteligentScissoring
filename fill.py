@@ -4,7 +4,7 @@ import sys
 class FloodFill():
 
     def __init__(self, w, h):
-        self.filledCells = []
+        self.selectedCells = []
 
     def fill(self, pathList, x, y, width, height):
         # result is the list of locations; pass it in in main code
@@ -14,9 +14,9 @@ class FloodFill():
             (x,y) = toFill.pop()
             loc = y*width + x
             #print(loc)
-            if (loc in pathList) or y < 0 or x < 0 or x >= width or y >= height or (loc in self.filledCells):
+            if (loc in pathList) or y < 0 or x < 0 or x >= width or y >= height or (loc in self.selectedCells):
                 continue
-            self.filledCells.append(loc)
+            self.selectedCells.append(loc)
             toFill.add((x+1, y))
             toFill.add((x-1, y))
             toFill.add((x, y+1))

@@ -1,4 +1,4 @@
-def bresenham(x1,y1,x2, y2, img):
+def bresenham(x1,y1,x2, y2, width, height, allPaths):
     # Iterators, counters required by algorithm
     # Calculate line deltas
     dx = x2 - x1
@@ -22,8 +22,9 @@ def bresenham(x1,y1,x2, y2, img):
             y = y2 
             xe = x1
         
-        print(x, y) # Draw first pixel
-        img[y][x] = (255, 0, 255)
+        #print(x, y) # Draw first pixel
+        loc = y*width + x
+        allPaths.append( loc )
         
         # Rasterize the line
         i = 0
@@ -41,7 +42,8 @@ def bresenham(x1,y1,x2, y2, img):
             # Draw pixel from line span at
             # currently rasterized position
             print(x, y)
-            img[y][x] = (255, 0, 255)
+            loc = y*width + x
+            allPaths.append( loc )
             i += 1
 
     # The line is Y-axis dominant
@@ -57,7 +59,8 @@ def bresenham(x1,y1,x2, y2, img):
             ye = y1
 
         print(x, y) # Draw first pixel
-        img[y][x] = (255, 0, 255)
+        loc = y*width + x
+        allPaths.append( loc )
         
         # Rasterize the line
         i = 0
@@ -76,5 +79,6 @@ def bresenham(x1,y1,x2, y2, img):
             # Draw pixel from line span at
             # currently rasterized position
             print(x, y)
-            img[y][x] = (255, 0, 255)
+            loc = y*width + x
+            allPaths.append( loc )
             i += 1
