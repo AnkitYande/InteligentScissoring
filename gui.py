@@ -30,7 +30,7 @@ seed_x = seed_y = None
 def initializeDijkstra(IMAGE, imageNumber):
     # global g1
     # global g2
-    w,h,d = IMAGE.shape
+    h,w,d = IMAGE.shape
     ######### preprocessing ##########
     print("preprocessing")
     img2 = cv.cvtColor(IMAGE, cv.COLOR_RGB2GRAY) # convert to graysacle
@@ -47,14 +47,14 @@ def initializeDijkstra(IMAGE, imageNumber):
     kernelV = np.array([[ 1,  2,  1],
                         [ 0,  0,  0],
                         [-1, -2, -1]])
-
+    
     #aply kernels to image
     imgFinal = np.zeros_like(img2)
-    for y in range(3, h-2):
-        for x in range(3, w-2):
-            localPixels = np.array([[ img2[x-1][y-1],  img2[x][y-1],  img2[x+1][y-1]],
-                                    [ img2[x-1][y],    img2[x][y],    img2[x+1][y]  ],
-                                    [ img2[x-1][y+1],  img2[x][y+1],  img2[x+1][y+1]]])
+    for y in range(1, h-2):
+        for x in range(1, w-2):
+            localPixels = np.array([[ img2[y-1][x-1],  img2[y-1][x],  img2[y-1][x+1]],
+                                    [ img2[y  ][x-1],  img2[y  ][x],  img2[y  ][x+1]],
+                                    [ img2[y+1][x-1],  img2[y+1][x],  img2[y+1][x+1]]])
             
             transformPixelsV = kernelV * localPixels / 4
             scoreV = transformPixelsV.sum()
@@ -62,7 +62,7 @@ def initializeDijkstra(IMAGE, imageNumber):
             transformPixelsH = kernelH * localPixels / 4
             scoreH = transformPixelsH.sum()
             
-            imgFinal[x][y] = ( scoreV**2 + scoreH**2 )**0.5
+            imgFinal[y][x] = ( scoreV**2 + scoreH**2 )**0.5
 
     imgFinal = imgFinal.max()-imgFinal
     print("edge detection completed")
@@ -87,21 +87,7 @@ def initializeDijkstra(IMAGE, imageNumber):
                     g.addEdge(y*w+x, b*w+a, abs(imgFinal[b][a]))
     print("graph for scissoring completed")
     return(imgFinal)
-
-
-def drawImage(IMAGE, imageNumber):
-    global src_img
-    global dest_img
-    if imageNumber == "img1":
-        src_img = Image.fromarray(IMAGE)
-        src_img = ImageTk.PhotoImage(src_img)
-        src_img_label = Label(image=src_img, name=imageNumber)
-        src_img_label.grid(row=2, column=0)
-    elif imageNumber == "img2":
-        dest_img = Image.fromarray(IMAGE)
-        dest_img = ImageTk.PhotoImage(dest_img)
-        dest_img_label = Label(image=dest_img, name=imageNumber)
-        dest_img_label.grid(row=2, column=1)
+    
 
 def copy(image, x, y):
     global selectedPix
@@ -133,23 +119,6 @@ def paste(imgDest, img, imageNumber, x, y):
     drawImage(imgDest, imageNumber)
     print("pasting completed")
 
-def openSrc():
-    global IMAGE1
-    root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
-    img = cv.imread(root.filename)
-    IMAGE1 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    IMAGE1_OG = IMAGE1.copy()
-    #IMAGE1_FINAL = initializeDijkstra(IMAGE1, "img1")
-    drawImage(IMAGE1, "img1")
-
-def openDest():
-    global IMAGE2
-    root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
-    img = cv.imread(root.filename)
-    IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    IMAGE2_OG = IMAGE2.copy()
-    #IMAGE2_FINAL = initializeDijkstra(IMAGE2, "img2")
-    drawImage(IMAGE2, "img2")
 
 def polygons(x, y, IMAGE, imageNumber, allPaths):
     global seed_x
@@ -254,9 +223,6 @@ def right_click(eventorigin):
     # allPaths = []
     # seed_x = seed_y = None
 
-        
-    
-
 
 def mouse_motion(eventorigin):
     global x,y
@@ -269,6 +235,40 @@ def mouse_motion(eventorigin):
     elif str(caller) == ".!label2" :
         print("image 1)",x,y)
         focus = 2
+
+
+def drawImage(IMAGE, imageNumber):
+    global src_img
+    global dest_img
+    if imageNumber == "img1":
+        src_img = Image.fromarray(IMAGE)
+        src_img = ImageTk.PhotoImage(src_img)
+        src_img_label = Label(image=src_img, name=imageNumber)
+        src_img_label.grid(row=2, column=0)
+    elif imageNumber == "img2":
+        dest_img = Image.fromarray(IMAGE)
+        dest_img = ImageTk.PhotoImage(dest_img)
+        dest_img_label = Label(image=dest_img, name=imageNumber)
+        dest_img_label.grid(row=2, column=1)
+
+def openSrc():
+    global IMAGE1
+    root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
+    img = cv.imread(root.filename)
+    IMAGE1 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    IMAGE1_OG = IMAGE1.copy()
+    IMAGE1_FINAL = initializeDijkstra(IMAGE1, "img1")
+    drawImage(IMAGE1, "img1")
+
+def openDest():
+    global IMAGE2
+    root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
+    img = cv.imread(root.filename)
+    IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    IMAGE2_OG = IMAGE2.copy()
+    #IMAGE2_FINAL = initializeDijkstra(IMAGE2, "img2")
+    drawImage(IMAGE2, "img2")
+
 
 f1 = Frame(root)
 b1 = Radiobutton(f1, 

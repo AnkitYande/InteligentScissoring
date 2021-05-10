@@ -6,7 +6,7 @@ from graph import Graph
 from fill import FloodFill
 from bresenham import bresenham
 
-tool = 1
+tool = 0
 
 readyToDraw = False
 dijkstraCompleted = False
@@ -53,17 +53,17 @@ def mouse_callback(event,x,y,flags,param):
                 dijkstraCompleted = True
                 print("dijkstra complete")
                 
-            # else:
-            #     print("filling x,y")
-            #     f = FloodFill(w,h)
-            #     f.fill(allPaths, x, y, w, h)
-            #     print("floodfill completed")
-            #     selectedPix = f.selectedCells
-            #     for i in f.selectedCells:
-            #         pix_y = i // w
-            #         pix_x = i - pix_y*w
-            #         imgDest[pix_y][pix_x] = img[pix_y][pix_x]
-            #         # img[pix_y][pix_x] = (255,255,255)
+            else:
+                print("filling x,y")
+                f = FloodFill(w,h)
+                f.fill(allPaths, x, y, w, h)
+                print("floodfill completed")
+                selectedPix = f.selectedCells
+                for i in f.selectedCells:
+                    pix_y = i // w
+                    pix_x = i - pix_y*w
+                    imgDest[pix_y][pix_x] = img[pix_y][pix_x]
+                    # img[pix_y][pix_x] = (255,255,255)
 
         elif tool == 1:
             if readyToDraw: 
@@ -73,23 +73,23 @@ def mouse_callback(event,x,y,flags,param):
                     for i in allPaths:
                         pix_y = i // w
                         pix_x = i - pix_y*w
-                        img[pix_y][pix_x] = (255,0,255)
+                        img[pix_x][pix_y] = (255,0,255)
                 else:
                     allPaths.append( y*w+x )
 
                 seed_x = x
                 seed_y = y
             else:
-                # print("filling x,y")
-                # f = FloodFill(w,h)
-                # f.fill(allPaths, x, y, w, h)
-                # print("coloring")
-                # selectedPix = f.selectedCells
-                # for i in f.selectedCells:
-                #     pix_y = i // w
-                #     pix_x = i - pix_y*w
-                #     imgDest[pix_y][pix_x] = img[pix_y][pix_x]
-                #     # img[pix_y][pix_x] = (255,255,255)
+                print("filling x,y")
+                f = FloodFill(w,h)
+                f.fill(allPaths, x, y, w, h)
+                print("coloring")
+                selectedPix = f.selectedCells
+                for i in f.selectedCells:
+                    pix_y = i // w
+                    pix_x = i - pix_y*w
+                    imgDest[pix_y][pix_x] = img[pix_y][pix_x]
+                    # img[pix_y][pix_x] = (255,255,255)
             
 
 
@@ -159,12 +159,12 @@ def pasteCallback(f, img, imgDest):
 
 ########## preprocessing ##########
 print("loading image")
-img = cv.imread("./imgs/doge.jpg") 
-imgOG = cv.imread("./imgs/doge.jpg") 
+img = cv.imread("./imgs/goodboi.jpg") 
+imgOG = cv.imread("./imgs/goodboi.jpg") 
 imgDest = cv.imread("./imgs/owl.png") 
 imgDestOG = cv.imread("./imgs/owl.png") 
 imgFinal = []
-w,h,d = img.shape
+h,w,d = img.shape
 
 print("preprocessing")
 img2 = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # convert to graysacle
@@ -185,11 +185,11 @@ if(tool == 0):
 
     #aply kernels to image
     imgFinal = np.zeros_like(img2)
-    for y in range(3, h-2):
-        for x in range(3, w-2):
-            localPixels = np.array([[ img2[x-1][y-1],  img2[x][y-1],  img2[x+1][y-1]],
-                                    [ img2[x-1][y],    img2[x][y],    img2[x+1][y]  ],
-                                    [ img2[x-1][y+1],  img2[x][y+1],  img2[x+1][y+1]]])
+    for y in range(1, h-2):
+        for x in range(1, w-2):
+            localPixels = np.array([[ img2[y-1][x-1],  img2[y-1][x],  img2[y-1][x+1]],
+                                    [ img2[y  ][x-1],  img2[y  ][x],  img2[y  ][x+1]],
+                                    [ img2[y+1][x-1],  img2[y+1][x],  img2[y+1][x+1]]])
             
             transformPixelsV = kernelV * localPixels / 4
             scoreV = transformPixelsV.sum()
@@ -197,8 +197,8 @@ if(tool == 0):
             transformPixelsH = kernelH * localPixels / 4
             scoreH = transformPixelsH.sum()
             
-            imgFinal[x][y] = ( scoreV**2 + scoreH**2 )**0.5
-
+            imgFinal[y][x] = ( scoreV**2 + scoreH**2 )**0.5
+    
     imgFinal = imgFinal.max()-imgFinal
     print("edge detection completed")
 
@@ -213,7 +213,7 @@ if(tool == 0):
                 for a in range(x-1, x+2):
                     if (a < 0 or a >= w or b < 0 or b >= h or (y == b and x == a)): # Check that [row, col] is not out of bounds
                         continue
-                    g.addEdge(y*w+x, b*w+a, abs(imgFinal[b][a]))
+                    g.addEdge(y*w+x, b*w+a, imgFinal[b][a])
     print("graph for scissoring completed")
 
 
