@@ -87,7 +87,7 @@ def mouse_callback(event,x,y,flags,param):
                 selectedPix = f.selectedCells
                 for i in f.selectedCells:
                     pix_y = i // w
-                    pix_x = i - pix_y*w
+                    pix_x= i - pix_y*w
                     imgDest[pix_y][pix_x] = img[pix_y][pix_x]
                     # img[pix_y][pix_x] = (255,255,255)
             
@@ -145,17 +145,17 @@ def arrowCallback():
         pix_x = pix - pix_y*w
         imgDest[pix_y + delta_y][pix_x + delta_x] = img[pix_y][pix_x]
 
-def copyCallback(f, selectedPix):
-    print("filling x,y")
-    f.fill(allPaths, x, y, w, h)
-    print("floodfill completed")
-    selectedPix = f.filledCells
+# def copyCallback(f, selectedPix):
+#     print("filling x,y")
+#     f.fill(allPaths, x, y, w, h)
+#     print("floodfill completed")
+#     selectedPix = f.filledCells
 
-def pasteCallback(f, img, imgDest):    
-    for i in f.filledCells:
-        pix_y = i // w
-        pix_x = i - pix_y*w
-        imgDest[pix_y][pix_x] = img[pix_y][pix_x]
+# def pasteCallback(f, img, imgDest):    
+#     for i in f.filledCells:
+#         pix_y = i // w
+#         pix_x = i - pix_y*w
+#         imgDest[pix_y][pix_x] = img[pix_y][pix_x]
 
 ########## preprocessing ##########
 print("loading image")
@@ -232,14 +232,14 @@ while(True):
     if k & 0xFF == 27: # escape - exit window
         break
     
-    if k & 0xFF == 99: #C
-        print("C")
-        delta_y -=5
-        copyCallback(f, selectedPix)
-    if k & 0xFF == 118: #V
-        print("V")
-        delta_x -=5
-        pasteCallback(f, img, imgDest)
+    # if k & 0xFF == 99: #C
+    #     print("C")
+    #     delta_y -=5
+    #     copyCallback(f, selectedPix)
+    # if k & 0xFF == 118: #V
+    #     print("V")
+    #     delta_x -=5
+    #     pasteCallback(f, img, imgDest)
 
     if k & 0xFF == 119: #W
         print("W")

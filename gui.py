@@ -15,21 +15,24 @@ focus = IntVar()
 
 IMAGE1 = None
 IMAGE1_OG = None
-IMAGE1_FINAL = None
+IMAGE1_Edges = None
 IMAGE2 = None
 IMAGE2_OG = None
-IMAGE2_FINAL = None
+IMAGE2_Edges = None
 SELECTED_IMAGE = None
 g1 = g2 = None
 
 selectionComplete = False
+dijkstraComplete = False
 allPaths = []
 selectedPix = []
 seed_x = seed_y = None
 
 def initializeDijkstra(IMAGE, imageNumber):
-    # global g1
-    # global g2
+    global dijkstraComplete
+    global g1
+    global g2
+    dijkstraComplete = False
     h,w,d = IMAGE.shape
     ######### preprocessing ##########
     print("preprocessing")
@@ -92,6 +95,7 @@ def initializeDijkstra(IMAGE, imageNumber):
 def copy(image, x, y):
     global selectedPix
     global allPaths
+    selectedPix = []
     print("copying")
     h,w,d = image.shape
     f = FloodFill(w,h)
@@ -113,14 +117,16 @@ def paste(imgDest, img, imageNumber, x, y):
     for i in selectedPix:
         pix_y = i // w
         pix_x = i - pix_y*w
-        imgDest[pix_y + delta_y][pix_x + delta_x] = img[pix_y][pix_x]
-        # img[pix_y][pix_x] = (255,255,255)
+        dest_y = pix_y + delta_y
+        dest_x = pix_x + delta_x
+        if not ((dest_y < 0) or (dest_y >= h) or (dest_x < 0) or (dest_x >= w)):
+            imgDest[dest_y][dest_x] = img[pix_y][pix_x]
     
     drawImage(imgDest, imageNumber)
     print("pasting completed")
 
 
-def polygons(x, y, IMAGE, imageNumber, allPaths):
+def polygonSelection(x, y, IMAGE, imageNumber, allPaths):
     global seed_x
     global seed_y
 
@@ -131,7 +137,7 @@ def polygons(x, y, IMAGE, imageNumber, allPaths):
         for i in allPaths:
             pix_y = i // w
             pix_x = i - pix_y*w
-            IMAGE[pix_y][pix_x] = (255,0,255)
+            IMAGE[pix_y][pix_x] = (255,0,0)
         drawImage(IMAGE, imageNumber)
     else:
         allPaths.append( y*w+x ) # this works bc mutable list
@@ -139,15 +145,54 @@ def polygons(x, y, IMAGE, imageNumber, allPaths):
     seed_x = x
     seed_y = y
 
+
+def runDijkstra(x, y, IMAGE, imageNumber, g, allPaths):
+    global seed_x
+    global seed_y
+    h,w,d = IMAGE.shape
+    seed_x = x
+    seed_y = y
+    seed = x+y*w
+    print("New seed at:", x,y, seed)
+    
+    i = seed_x+seed_y*w
+    while(not len(g.parent) == 0 and g.parent[i] != -1):
+        allPaths.append(i)
+        i = g.parent[i]
+
+    print("performing dijkstra")
+    g.parent = []
+    g.dijkstra(seed)
+    print("dijkstra complete")
+
+def scissoring(x, y, img, imgOG, imageNumber, g, allPaths):
+    h,w,d = img.shape
+    i = x+y*w
+    img = imgOG.copy() #reset image
+    cv.circle(img,(seed_x,seed_y),5,(0,255,0),-1)
+
+    for pix in allPaths:
+        pix_y = pix // w
+        pix_x = pix - pix_y*w
+        cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path 
+
+    while(not len(g.parent) == 0 and g.parent[i] != -1):
+        i = g.parent[i]
+        pix_y = i // w
+        pix_x = i - pix_y*w
+        cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path 
+    
+    drawImage(img, imageNumber)
+
     
 def left_click(eventorigin):
-    global x,y
     global IMAGE1
     global IMAGE2
     global allPaths
     global seed_x
     global seed_y
     global selectionComplete
+    global dijkstraComplete
     global SELECTED_IMAGE
 
     caller = eventorigin.widget
@@ -156,14 +201,16 @@ def left_click(eventorigin):
     
     imageUsed = None
     imageUsedNum = None
+    graphUsed = None
 
     if str(caller) == ".img1" :
-        if focus == 2:
+        if focus.get() == 2:
             allPaths = []
             seed_x = seed_y = None
             selectionComplete = False
         imageUsed = IMAGE1
         imageUsedNum = "img1"
+        graphUsed = g1
         focus.set(1)
     elif str(caller) == ".img2" :
         if focus.get() == 1:
@@ -172,16 +219,28 @@ def left_click(eventorigin):
             selectionComplete = False
         imageUsed = IMAGE2
         imageUsedNum = "img2"
+        graphUsed = g2
         focus.set(2)
 
     if not selectionComplete:
         if tool.get() == 0 and imageUsedNum != None:
-            polygons(x,y, imageUsed, imageUsedNum, allPaths)
+            polygonSelection(x,y, imageUsed, imageUsedNum, allPaths)
     
+        if tool.get() == 1 and imageUsedNum != None and graphUsed != None:
+            dijkstraComplete = False
+            runDijkstra(x,y,imageUsed, imageUsedNum, graphUsed, allPaths) # need to pass in correct graph
+            dijkstraComplete = True
+
     if tool.get() == 3 and imageUsedNum != None:  
         if selectionComplete:
             copy(imageUsed, x, y)
             SELECTED_IMAGE = imageUsed
+            if imageUsedNum == "img1":
+                resetSrc()
+            elif imageUsedNum == "img2":
+                resetDest()
+            selectionComplete = False
+            allPaths = []
         else:
             print("ERROR: NOTHING SELECTED")
     if tool.get() == 4:
@@ -191,10 +250,9 @@ def left_click(eventorigin):
             print("ERROR: NOTHING COPIED")
 
 def right_click(eventorigin):
-    global seed_x
-    global seed_y
     global allPaths
     global selectionComplete
+    global dijkstraComplete
 
     caller = eventorigin.widget
     x = eventorigin.x
@@ -202,39 +260,68 @@ def right_click(eventorigin):
 
     imageUsed = None
     imageUsedNum = None
+    graphUsed = None
 
     if str(caller) == ".img1" :
         imageUsed = IMAGE1
         imageUsedNum = "img1"
+        graphUsed = g1
 
     elif str(caller) == ".img2" :
         imageUsed = IMAGE2
         imageUsedNum = "img2"
+        graphUsed = g2
 
 
-    if not selectionComplete:
+    if not selectionComplete and imageUsedNum != None:
+        h,w,d = imageUsed.shape
         if tool.get() == 0:
-            h,w,d = imageUsed.shape
             pix_y = allPaths[0] // w
             pix_x = allPaths[0] - pix_y*w
-            polygons(pix_x, pix_y, imageUsed, imageUsedNum, allPaths)
+            polygonSelection(pix_x, pix_y, imageUsed, imageUsedNum, allPaths)
             selectionComplete = True
+            print("Selection Completed")
+        if tool.get() == 1:
+            i = seed_x+seed_y*w
+            while(not len(graphUsed.parent) == 0 and graphUsed.parent[i] != -1):
+                allPaths.append(i)
+                i = graphUsed.parent[i]
+            selectionComplete = True
+            dijkstraComplete = False
+            print("Selection Completed")
+
 
     # allPaths = []
     # seed_x = seed_y = None
 
 
 def mouse_motion(eventorigin):
-    global x,y
+    global IMAGE1
+    global IMAGE2
+    
     x = eventorigin.x
     y = eventorigin.y
     caller = eventorigin.widget
-    if str(caller) == ".!label" :
-        print("image 0)", x,y)
-        focus = 0
-    elif str(caller) == ".!label2" :
-        print("image 1)",x,y)
-        focus = 2
+    
+    imageUsed = None
+    imageUsedNum = None
+    imageOG = None
+    graphUsed = None
+
+    if str(caller) == ".img1" :
+        imageUsed = IMAGE1
+        imageUsedNum = "img1"
+        imageOG = IMAGE1_OG
+        graphUsed = g1
+    elif str(caller) == ".img2" :
+        imageUsed = IMAGE2
+        imageUsedNum = "img2"
+        imageOG = IMAGE2_OG
+        graphUsed = g2
+
+    if(tool.get() == 1) and imageUsedNum != None:
+        if dijkstraComplete and not selectionComplete:
+            scissoring(x,y,imageUsed, imageOG, imageUsedNum, graphUsed, allPaths)
 
 
 def drawImage(IMAGE, imageNumber):
@@ -253,22 +340,47 @@ def drawImage(IMAGE, imageNumber):
 
 def openSrc():
     global IMAGE1
+    global IMAGE1_OG
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE1 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     IMAGE1_OG = IMAGE1.copy()
-    IMAGE1_FINAL = initializeDijkstra(IMAGE1, "img1")
+    IMAGE1_EDGES = initializeDijkstra(IMAGE1, "img1")
     drawImage(IMAGE1, "img1")
 
 def openDest():
     global IMAGE2
+    global IMAGE2_OG
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     IMAGE2_OG = IMAGE2.copy()
-    #IMAGE2_FINAL = initializeDijkstra(IMAGE2, "img2")
+    #IMAGE2_EDGES = initializeDijkstra(IMAGE2, "img2")
     drawImage(IMAGE2, "img2")
 
+def resetSrc():
+    global IMAGE1
+    global IMAGE1_OG
+    global allPaths
+    global seed_x
+    global seed_y
+    seed_x = None
+    seed_y = None
+    IMAGE1 = IMAGE1_OG.copy()
+    drawImage(IMAGE1, "img1")
+    allPaths = []
+
+def resetDest():
+    global IMAGE2
+    global IMAGE2_OG
+    global allPaths
+    global seed_x
+    global seed_y
+    seed_x = None
+    seed_y = None
+    IMAGE2 = IMAGE2_OG.copy()
+    drawImage(IMAGE2, "img2")
+    allPaths = []
 
 f1 = Frame(root)
 b1 = Radiobutton(f1, 
@@ -296,13 +408,23 @@ b5 = Radiobutton(f1,
                 padx = 20, 
                 variable=tool, 
                 value=4).pack(side="left")
+b6 = Radiobutton(f1, 
+                text="Move Tool",
+                padx = 20, 
+                variable=tool, 
+                value=4).pack(side="left")
 
-src_open_btn = Button(root, text="Select Source Image", command=openSrc)
-dest_open_btn = Button(root, text="Select Destination Image", command=openDest)
+src_open_btn = Button(root, text="Select Image 1", command=openSrc)
+dest_open_btn = Button(root, text="Select Image 2", command=openDest)
+
+reset1_btn = Button(root, text="Reset Image 1", command=resetSrc)
+reset2_btn = Button(root, text="Reset Image 2", command=resetDest)
 
 f1.grid(row=0, column=0, columnspan = 2, sticky="nsew")
 src_open_btn.grid(row=1, column=0)
 dest_open_btn.grid(row=1, column=1)
+reset1_btn.grid(row=3, column=0)
+reset2_btn.grid(row=3, column=1)
 
 root.bind("<Button 1>", left_click)
 root.bind("<Button 2>", right_click)
