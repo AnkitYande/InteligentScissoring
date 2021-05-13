@@ -2,7 +2,7 @@ from tkinter import * #tkinter
 from tkinter import filedialog
 from PIL import ImageTk, Image #pillow
 import cv2 as cv # OpenCV
-import numpy as np #NumPY
+import numpy as np #NumPy
 
 from bresenham import bresenham
 from graph import Graph
@@ -189,6 +189,7 @@ def left_click(eventorigin):
     global IMAGE1
     global IMAGE2
     global allPaths
+    global selectedPix
     global seed_x
     global seed_y
     global selectionComplete
@@ -203,51 +204,71 @@ def left_click(eventorigin):
     imageUsedNum = None
     graphUsed = None
 
-    if str(caller) == ".img1" :
-        if focus.get() == 2:
-            allPaths = []
-            seed_x = seed_y = None
-            selectionComplete = False
-        imageUsed = IMAGE1
-        imageUsedNum = "img1"
-        graphUsed = g1
-        focus.set(1)
-    elif str(caller) == ".img2" :
-        if focus.get() == 1:
-            allPaths = []
-            seed_x = seed_y = None
-            selectionComplete = False
-        imageUsed = IMAGE2
-        imageUsedNum = "img2"
-        graphUsed = g2
-        focus.set(2)
+    if str(caller) == ".img1" or str(caller) == ".img2" :
 
-    if not selectionComplete:
-        if tool.get() == 0 and imageUsedNum != None:
-            polygonSelection(x,y, imageUsed, imageUsedNum, allPaths)
-    
-        if tool.get() == 1 and imageUsedNum != None and graphUsed != None:
-            dijkstraComplete = False
-            runDijkstra(x,y,imageUsed, imageUsedNum, graphUsed, allPaths) # need to pass in correct graph
-            dijkstraComplete = True
+        if str(caller) == ".img1" :
+            if focus.get() == 2:
+                allPaths = []
+                seed_x = seed_y = None
+                selectionComplete = False
+            imageUsed = IMAGE1
+            imageUsedNum = "img1"
+            graphUsed = g1
+            focus.set(1)
+        elif str(caller) == ".img2" :
+            if focus.get() == 1:
+                allPaths = []
+                seed_x = seed_y = None
+                selectionComplete = False
+            imageUsed = IMAGE2
+            imageUsedNum = "img2"
+            graphUsed = g2
+            focus.set(2)
 
-    if tool.get() == 3 and imageUsedNum != None:  
-        if selectionComplete:
-            copy(imageUsed, x, y)
-            SELECTED_IMAGE = imageUsed
-            if imageUsedNum == "img1":
-                resetSrc()
-            elif imageUsedNum == "img2":
-                resetDest()
-            selectionComplete = False
-            allPaths = []
-        else:
-            print("ERROR: NOTHING SELECTED")
-    if tool.get() == 4:
-        if len(selectedPix) != 0 and SELECTED_IMAGE.any() != None:
-            paste(imageUsed, SELECTED_IMAGE, imageUsedNum, x, y) # pasted into, copied from
-        else:
-            print("ERROR: NOTHING COPIED")
+        if not selectionComplete:
+            if tool.get() == 0 and imageUsedNum != None:
+                polygonSelection(x,y, imageUsed, imageUsedNum, allPaths)
+        
+            if tool.get() == 1 and imageUsedNum != None and graphUsed != None:
+                dijkstraComplete = False
+                runDijkstra(x,y,imageUsed, imageUsedNum, graphUsed, allPaths) # need to pass in correct graph
+                dijkstraComplete = True
+
+            if tool.get() == 2 and imageUsedNum != None:
+                w,h,d = imageUsed.shape
+                hsv_img = cv.cvtColor(imageUsed.copy(), cv.COLOR_RGB2HSV)
+                f = FloodFill(w,h)
+                f.colorSelect(hsv_img, allPaths, x, y, w, h)
+                selectedPix = f.selectedCells
+                # selectedPix.sort()
+                print("color picking completed")
+                for i in allPaths:
+                    pix_y = i // w
+                    pix_x = i - pix_y*w
+                    #print(pix_x, pix_y)
+                    imageUsed[pix_y][pix_x] = (0,0,255)
+                selectionComplete = True
+                
+                drawImage(imageUsed, imageUsedNum)
+
+        if tool.get() == 3 and imageUsedNum != None:  
+            if selectionComplete:
+                copy(imageUsed, x, y)
+                SELECTED_IMAGE = imageUsed
+                if imageUsedNum == "img1":
+                    resetSrc()
+                elif imageUsedNum == "img2":
+                    resetDest()
+                selectionComplete = False
+                allPaths = []
+            else:
+                print("ERROR: NOTHING SELECTED")
+
+        if tool.get() == 4 and imageUsedNum != None:
+            if len(selectedPix) != 0 and SELECTED_IMAGE.any() != None:
+                paste(imageUsed, SELECTED_IMAGE, imageUsedNum, x, y) # pasted into, copied from
+            else:
+                print("ERROR: NOTHING COPIED")
 
 def right_click(eventorigin):
     global allPaths
@@ -261,34 +282,36 @@ def right_click(eventorigin):
     imageUsed = None
     imageUsedNum = None
     graphUsed = None
+    
+    if str(caller) == ".img1" or str(caller) == ".img2" :
 
-    if str(caller) == ".img1" :
-        imageUsed = IMAGE1
-        imageUsedNum = "img1"
-        graphUsed = g1
+        if str(caller) == ".img1" :
+            imageUsed = IMAGE1
+            imageUsedNum = "img1"
+            graphUsed = g1
 
-    elif str(caller) == ".img2" :
-        imageUsed = IMAGE2
-        imageUsedNum = "img2"
-        graphUsed = g2
+        elif str(caller) == ".img2" :
+            imageUsed = IMAGE2
+            imageUsedNum = "img2"
+            graphUsed = g2
 
 
-    if not selectionComplete and imageUsedNum != None:
-        h,w,d = imageUsed.shape
-        if tool.get() == 0:
-            pix_y = allPaths[0] // w
-            pix_x = allPaths[0] - pix_y*w
-            polygonSelection(pix_x, pix_y, imageUsed, imageUsedNum, allPaths)
-            selectionComplete = True
-            print("Selection Completed")
-        if tool.get() == 1:
-            i = seed_x+seed_y*w
-            while(not len(graphUsed.parent) == 0 and graphUsed.parent[i] != -1):
-                allPaths.append(i)
-                i = graphUsed.parent[i]
-            selectionComplete = True
-            dijkstraComplete = False
-            print("Selection Completed")
+        if not selectionComplete and imageUsedNum != None:
+            h,w,d = imageUsed.shape
+            if tool.get() == 0:
+                pix_y = allPaths[0] // w
+                pix_x = allPaths[0] - pix_y*w
+                polygonSelection(pix_x, pix_y, imageUsed, imageUsedNum, allPaths)
+                selectionComplete = True
+                print("Selection Completed")
+            if tool.get() == 1:
+                i = seed_x+seed_y*w
+                while(not len(graphUsed.parent) == 0 and graphUsed.parent[i] != -1):
+                    allPaths.append(i)
+                    i = graphUsed.parent[i]
+                selectionComplete = True
+                dijkstraComplete = False
+                print("Selection Completed")
 
 
     # allPaths = []
@@ -308,20 +331,22 @@ def mouse_motion(eventorigin):
     imageOG = None
     graphUsed = None
 
-    if str(caller) == ".img1" :
-        imageUsed = IMAGE1
-        imageUsedNum = "img1"
-        imageOG = IMAGE1_OG
-        graphUsed = g1
-    elif str(caller) == ".img2" :
-        imageUsed = IMAGE2
-        imageUsedNum = "img2"
-        imageOG = IMAGE2_OG
-        graphUsed = g2
+    if str(caller) == ".img1" or str(caller) == ".img2" :
 
-    if(tool.get() == 1) and imageUsedNum != None:
-        if dijkstraComplete and not selectionComplete:
-            scissoring(x,y,imageUsed, imageOG, imageUsedNum, graphUsed, allPaths)
+        if str(caller) == ".img1" :
+            imageUsed = IMAGE1
+            imageUsedNum = "img1"
+            imageOG = IMAGE1_OG
+            graphUsed = g1
+        elif str(caller) == ".img2" :
+            imageUsed = IMAGE2
+            imageUsedNum = "img2"
+            imageOG = IMAGE2_OG
+            graphUsed = g2
+
+        if(tool.get() == 1) and imageUsedNum != None:
+            if dijkstraComplete and not selectionComplete:
+                scissoring(x,y,imageUsed, imageOG, imageUsedNum, graphUsed, allPaths)
 
 
 def drawImage(IMAGE, imageNumber):
@@ -408,11 +433,7 @@ b5 = Radiobutton(f1,
                 padx = 20, 
                 variable=tool, 
                 value=4).pack(side="left")
-b6 = Radiobutton(f1, 
-                text="Move Tool",
-                padx = 20, 
-                variable=tool, 
-                value=4).pack(side="left")
+
 
 src_open_btn = Button(root, text="Select Image 1", command=openSrc)
 dest_open_btn = Button(root, text="Select Image 2", command=openDest)
