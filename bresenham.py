@@ -41,7 +41,7 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
                 px = px + 2 * (dy_abs - dx_abs)
             # Draw pixel from line span at
             # currently rasterized position
-            print(x, y)
+            # print(x, y)
             loc = y*width + x
             allPaths.append( loc )
             i += 1
@@ -58,7 +58,7 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
             y = y2 
             ye = y1
 
-        print(x, y) # Draw first pixel
+        # print(x, y) # Draw first pixel
         loc = y*width + x
         allPaths.append( loc )
         
@@ -78,7 +78,7 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
 
             # Draw pixel from line span at
             # currently rasterized position
-            print(x, y)
+            # print(x, y)
             loc = y*width + x
             allPaths.append( loc )
             i += 1

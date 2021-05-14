@@ -14,12 +14,19 @@ tool = IntVar()
 focus = IntVar()
 
 IMAGE1 = None
+IMAGE1_EDIT = None
 IMAGE1_OG = None
-IMAGE1_Edges = None
+IMAGE1_EDGES = None
+showImg1Edges = False
+
 IMAGE2 = None
+IMAGE2_EDIT = None
 IMAGE2_OG = None
-IMAGE2_Edges = None
+IMAGE2_EDGES = None
+showImg2Edges = False
+
 SELECTED_IMAGE = None
+
 g1 = g2 = None
 
 selectionComplete = False
@@ -30,6 +37,8 @@ seed_x = seed_y = None
 
 def initializeDijkstra(IMAGE, imageNumber):
     global dijkstraComplete
+    global IMAGE1_EDGES
+    global IMAGE2_EDGES
     global g1
     global g2
     dijkstraComplete = False
@@ -59,10 +68,10 @@ def initializeDijkstra(IMAGE, imageNumber):
                                     [ img2[y  ][x-1],  img2[y  ][x],  img2[y  ][x+1]],
                                     [ img2[y+1][x-1],  img2[y+1][x],  img2[y+1][x+1]]])
             
-            transformPixelsV = kernelV * localPixels / 4
+            transformPixelsV = kernelV * localPixels
             scoreV = transformPixelsV.sum()
             
-            transformPixelsH = kernelH * localPixels / 4
+            transformPixelsH = kernelH * localPixels
             scoreH = transformPixelsH.sum()
             
             imgFinal[y][x] = ( scoreV**2 + scoreH**2 )**0.5
@@ -74,9 +83,11 @@ def initializeDijkstra(IMAGE, imageNumber):
     print("creating graph for scissoring")
     g = None
     if imageNumber == "img1":
+        IMAGE1_EDGES = imgFinal
         g1 = Graph(h*w)
         g = g1
     else:
+        IMAGE2_EDGES = imgFinal
         g2 = Graph(h*w)
         g = g2
 
@@ -107,6 +118,7 @@ def copy(image, x, y):
 def paste(imgDest, img, imageNumber, x, y):
     global selectedPix
     h,w,d = img.shape
+    h2,w2,d2 = imgDest.shape
     print("pasting")
 
     #print(img)
@@ -119,7 +131,7 @@ def paste(imgDest, img, imageNumber, x, y):
         pix_x = i - pix_y*w
         dest_y = pix_y + delta_y
         dest_x = pix_x + delta_x
-        if not ((dest_y < 0) or (dest_y >= h) or (dest_x < 0) or (dest_x >= w)):
+        if not ((dest_y < 0) or (dest_y >= h2) or (dest_x < 0) or (dest_x >= w2)):
             imgDest[dest_y][dest_x] = img[pix_y][pix_x]
     
     drawImage(imgDest, imageNumber)
@@ -155,7 +167,7 @@ def runDijkstra(x, y, IMAGE, imageNumber, g, allPaths):
     seed = x+y*w
     print("New seed at:", x,y, seed)
     
-    i = seed_x+seed_y*w
+    i = seed
     while(not len(g.parent) == 0 and g.parent[i] != -1):
         allPaths.append(i)
         i = g.parent[i]
@@ -166,6 +178,8 @@ def runDijkstra(x, y, IMAGE, imageNumber, g, allPaths):
     print("dijkstra complete")
 
 def scissoring(x, y, img, imgOG, imageNumber, g, allPaths):
+    global seed_x
+    global seed_y
     h,w,d = img.shape
     i = x+y*w
     img = imgOG.copy() #reset image
@@ -228,7 +242,18 @@ def left_click(eventorigin):
         if not selectionComplete:
             if tool.get() == 0 and imageUsedNum != None:
                 polygonSelection(x,y, imageUsed, imageUsedNum, allPaths)
-        
+                
+                #move this to a new function or somehting so it doesnt happen every time, only when tool is changed
+                #Copying shouldn’t reset pastes need a new Image mask lines layer thingy
+
+                print("end of polygon: ", seed_x,seed_y)
+                g1.parent = []
+                h,w,d = imageUsed.shape
+                g1.dijkstra(seed_y*w+seed_x)
+                print("start of dijkstra: ", seed_x,seed_y)
+                
+                dijkstraComplete = True
+
             if tool.get() == 1 and imageUsedNum != None and graphUsed != None:
                 dijkstraComplete = False
                 runDijkstra(x,y,imageUsed, imageUsedNum, graphUsed, allPaths) # need to pass in correct graph
@@ -387,25 +412,54 @@ def resetSrc():
     global IMAGE1
     global IMAGE1_OG
     global allPaths
+    global selectedPix
     global seed_x
     global seed_y
+    global selectionComplete
+    global dijkstraComplete
+    selectionComplete = False
+    dijkstraComplete = False
     seed_x = None
     seed_y = None
     IMAGE1 = IMAGE1_OG.copy()
-    drawImage(IMAGE1, "img1")
     allPaths = []
+    selectedPix = []
+    drawImage(IMAGE1, "img1")
 
 def resetDest():
     global IMAGE2
     global IMAGE2_OG
     global allPaths
+    global selectedPix
     global seed_x
     global seed_y
+    global selectionComplete
+    global dijkstraComplete
+    selectionComplete = False
+    dijkstraComplete = False
     seed_x = None
     seed_y = None
     IMAGE2 = IMAGE2_OG.copy()
-    drawImage(IMAGE2, "img2")
     allPaths = []
+    selectedPix = []
+    drawImage(IMAGE2, "img2")
+
+def edgesSrc():
+    global showImg1Edges
+    showImg1Edges = not showImg1Edges
+    if showImg1Edges:
+        drawImage(IMAGE1_EDGES, "img1")
+    else:
+        drawImage(IMAGE1, "img1")
+
+def edgesDest():
+    global showImg2Edges
+    showImg2Edges = not showImg2Edges
+    if showImg2Edges:
+        drawImage(IMAGE2_EDGES, "img2")
+    else:
+        drawImage(IMAGE2, "img2")
+
 
 f1 = Frame(root)
 b1 = Radiobutton(f1, 
@@ -441,11 +495,16 @@ dest_open_btn = Button(root, text="Select Image 2", command=openDest)
 reset1_btn = Button(root, text="Reset Image 1", command=resetSrc)
 reset2_btn = Button(root, text="Reset Image 2", command=resetDest)
 
+edges1_btn = Button(root, text="Toggle Image 1 Edges", command=edgesSrc)
+edges2_btn = Button(root, text="Toggle Image 2 Edges", command=edgesDest)
+
 f1.grid(row=0, column=0, columnspan = 2, sticky="nsew")
 src_open_btn.grid(row=1, column=0)
 dest_open_btn.grid(row=1, column=1)
 reset1_btn.grid(row=3, column=0)
 reset2_btn.grid(row=3, column=1)
+edges1_btn.grid(row=4, column=0)
+edges2_btn.grid(row=4, column=1)
 
 root.bind("<Button 1>", left_click)
 root.bind("<Button 2>", right_click)

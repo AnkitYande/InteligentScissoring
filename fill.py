@@ -39,7 +39,7 @@ class FloodFill():
                 continue
            
             (h,s,v) = image[y][x]
-            if (abs(oH-h) > 3 and abs(oS-s) > 5 and abs(oV-v) > 5):
+            if (abs(oH-h) > 3 and abs(oS-s) > 10 and abs(oV-v) > 10):
                 pathList.append(loc)
                 continue
             
