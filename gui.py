@@ -257,7 +257,7 @@ def left_click(eventorigin):
                 dijkstraComplete = True
 
             elif tool.get() == 2 and imageUsedNum != None:
-                w,h,d = imageUsed.shape
+                h,w,d = imageUsed.shape
                 hsv_img = cv.cvtColor(imageUsed.copy(), cv.COLOR_RGB2HSV)
                 f = FloodFill(w,h)
                 f.colorSelect(hsv_img, allPaths, x, y, w, h)
@@ -364,9 +364,7 @@ def mouse_motion(eventorigin):
             graphUsed = g2
 
         if(tool.get() == 1) and imageUsedNum != None:
-            print(prevTool, tool.get())
             if(prevTool == 0):
-                print("here")
                 graphUsed.parent = []
                 h,w,d = imageUsed.shape
                 graphUsed.dijkstra(seed_y*w+seed_x)
@@ -393,6 +391,7 @@ def openSrc():
     global IMAGE1
     global IMAGE1_OG
     global IMAGE1_EDIT
+    resetGlobals()
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE1 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
@@ -400,6 +399,19 @@ def openSrc():
     IMAGE1_EDIT = IMAGE1.copy()
     IMAGE1_EDGES = initializeDijkstra(IMAGE1, "img1")
     drawImage(IMAGE1, "img1")
+    
+def openDest():
+    global IMAGE2
+    global IMAGE2_OG
+    global IMAGE2_EDIT
+    resetGlobals()
+    root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
+    img = cv.imread(root.filename)
+    IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    IMAGE2_OG = IMAGE2.copy()
+    IMAGE2_EDIT = IMAGE2.copy()
+    #IMAGE2_EDGES = initializeDijkstra(IMAGE2, "img2")
+    drawImage(IMAGE2, "img2")
 
 def resetGlobals():
     global allPaths
@@ -413,36 +425,27 @@ def resetGlobals():
     seed_x = None
     seed_y = None
     allPaths = []
-    
-    
-def openDest():
-    global IMAGE2
-    global IMAGE2_OG
-    global IMAGE2_EDIT
-    root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
-    img = cv.imread(root.filename)
-    IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    IMAGE2_OG = IMAGE2.copy()
-    IMAGE2_EDIT = IMAGE2.copy()
-    #IMAGE2_EDGES = initializeDijkstra(IMAGE2, "img2")
-    drawImage(IMAGE2, "img2")
 
 def resetSrc():
     resetGlobals()
     global IMAGE1
     global IMAGE1_OG
+    global IMAGE1_EDIT
     global selectedPix
     selectedPix = []
     IMAGE1 = IMAGE1_OG.copy()
+    IMAGE1_EDIT = IMAGE1.copy()
     drawImage(IMAGE1, "img1")
 
 def resetDest():
     resetGlobals()
     global IMAGE2
     global IMAGE2_OG
+    global IMAGE2_EDIT
     global selectedPix
     selectedPix = []
     IMAGE2 = IMAGE2_OG.copy()
+    IMAGE2_EDIT = IMAGE2.copy()
     drawImage(IMAGE2, "img2")
 
 def edgesSrc():
