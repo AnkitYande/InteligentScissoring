@@ -1,12 +1,9 @@
 def bresenham(x1,y1,x2, y2, width, height, allPaths):
-    # Iterators, counters required by algorithm
-    # Calculate line deltas
+
     dx = x2 - x1
     dy = y2 - y1
-    # Create a positive copy of deltas (makes iterating easier)
     dx_abs = abs(dx)
     dy_abs = abs(dy)
-    # Calculate error intervals for both axis
     px = 2 * dy_abs - dx_abs
     py = 2 * dx_abs - dy_abs
     

@@ -12,6 +12,7 @@ root = Tk()
 root.title("Final Project")
 tool = IntVar()
 focus = IntVar()
+prevTool = 0
 
 IMAGE1 = None
 IMAGE1_EDIT = None
@@ -115,7 +116,7 @@ def copy(image, x, y):
     selectedPix.sort()
     print("copying completed")
     
-def paste(imgDest, img, imageNumber, x, y):
+def paste(imgDest, img, imgEdit, imageNumber, x, y):
     global selectedPix
     h,w,d = img.shape
     h2,w2,d2 = imgDest.shape
@@ -133,8 +134,8 @@ def paste(imgDest, img, imageNumber, x, y):
         dest_x = pix_x + delta_x
         if not ((dest_y < 0) or (dest_y >= h2) or (dest_x < 0) or (dest_x >= w2)):
             imgDest[dest_y][dest_x] = img[pix_y][pix_x]
+            imgEdit[dest_y][dest_x] = img[pix_y][pix_x]
     
-    drawImage(imgDest, imageNumber)
     print("pasting completed")
 
 
@@ -188,20 +189,22 @@ def scissoring(x, y, img, imgOG, imageNumber, g, allPaths):
     for pix in allPaths:
         pix_y = pix // w
         pix_x = pix - pix_y*w
-        cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path 
+        img[pix_y][pix_x] = (255,0,0)
 
     while(not len(g.parent) == 0 and g.parent[i] != -1):
         i = g.parent[i]
         pix_y = i // w
         pix_x = i - pix_y*w
-        cv.circle(img,(pix_x,pix_y),1,(255,0,0),-1) #draw path 
+        img[pix_y][pix_x] = (255,0,0)
     
     drawImage(img, imageNumber)
 
-    
+
 def left_click(eventorigin):
     global IMAGE1
     global IMAGE2
+    global IMAGE1_EDIT
+    global IMAGE2_EDIT
     global allPaths
     global selectedPix
     global seed_x
@@ -209,12 +212,14 @@ def left_click(eventorigin):
     global selectionComplete
     global dijkstraComplete
     global SELECTED_IMAGE
-
+    global prevTool
+    
     caller = eventorigin.widget
     x = eventorigin.x
     y = eventorigin.y
     
     imageUsed = None
+    imageEditUsed = None
     imageUsedNum = None
     graphUsed = None
 
@@ -226,6 +231,7 @@ def left_click(eventorigin):
                 seed_x = seed_y = None
                 selectionComplete = False
             imageUsed = IMAGE1
+            imageEditUsed = IMAGE1_EDIT
             imageUsedNum = "img1"
             graphUsed = g1
             focus.set(1)
@@ -235,6 +241,7 @@ def left_click(eventorigin):
                 seed_x = seed_y = None
                 selectionComplete = False
             imageUsed = IMAGE2
+            imageEditUsed = IMAGE2_EDIT
             imageUsedNum = "img2"
             graphUsed = g2
             focus.set(2)
@@ -242,24 +249,14 @@ def left_click(eventorigin):
         if not selectionComplete:
             if tool.get() == 0 and imageUsedNum != None:
                 polygonSelection(x,y, imageUsed, imageUsedNum, allPaths)
-                
-                #move this to a new function or somehting so it doesnt happen every time, only when tool is changed
-                #Copying shouldn’t reset pastes need a new Image mask lines layer thingy
+                prevTool = 0
 
-                print("end of polygon: ", seed_x,seed_y)
-                g1.parent = []
-                h,w,d = imageUsed.shape
-                g1.dijkstra(seed_y*w+seed_x)
-                print("start of dijkstra: ", seed_x,seed_y)
-                
-                dijkstraComplete = True
-
-            if tool.get() == 1 and imageUsedNum != None and graphUsed != None:
+            elif tool.get() == 1 and imageUsedNum != None and graphUsed != None:
                 dijkstraComplete = False
-                runDijkstra(x,y,imageUsed, imageUsedNum, graphUsed, allPaths) # need to pass in correct graph
+                runDijkstra(x,y,imageUsed, imageUsedNum, graphUsed, allPaths)
                 dijkstraComplete = True
 
-            if tool.get() == 2 and imageUsedNum != None:
+            elif tool.get() == 2 and imageUsedNum != None:
                 w,h,d = imageUsed.shape
                 hsv_img = cv.cvtColor(imageUsed.copy(), cv.COLOR_RGB2HSV)
                 f = FloodFill(w,h)
@@ -270,7 +267,6 @@ def left_click(eventorigin):
                 for i in allPaths:
                     pix_y = i // w
                     pix_x = i - pix_y*w
-                    #print(pix_x, pix_y)
                     imageUsed[pix_y][pix_x] = (0,0,255)
                 selectionComplete = True
                 
@@ -279,21 +275,21 @@ def left_click(eventorigin):
         if tool.get() == 3 and imageUsedNum != None:  
             if selectionComplete:
                 copy(imageUsed, x, y)
-                SELECTED_IMAGE = imageUsed
-                if imageUsedNum == "img1":
-                    resetSrc()
-                elif imageUsedNum == "img2":
-                    resetDest()
-                selectionComplete = False
-                allPaths = []
+                resetGlobals()
+                imageUsed = imageEditUsed.copy()
+                SELECTED_IMAGE = imageEditUsed.copy()
+                drawImage(imageUsed, imageUsedNum)
             else:
                 print("ERROR: NOTHING SELECTED")
 
         if tool.get() == 4 and imageUsedNum != None:
             if len(selectedPix) != 0 and SELECTED_IMAGE.any() != None:
-                paste(imageUsed, SELECTED_IMAGE, imageUsedNum, x, y) # pasted into, copied from
+                paste(imageUsed, SELECTED_IMAGE, imageEditUsed, imageUsedNum, x, y) 
+                imageUsed = imageEditUsed.copy()
+                drawImage(imageUsed, imageUsedNum)
             else:
                 print("ERROR: NOTHING COPIED")
+    
 
 def right_click(eventorigin):
     global allPaths
@@ -339,13 +335,11 @@ def right_click(eventorigin):
                 print("Selection Completed")
 
 
-    # allPaths = []
-    # seed_x = seed_y = None
-
-
 def mouse_motion(eventorigin):
     global IMAGE1
     global IMAGE2
+    global dijkstraComplete
+    global prevTool
     
     x = eventorigin.x
     y = eventorigin.y
@@ -370,9 +364,16 @@ def mouse_motion(eventorigin):
             graphUsed = g2
 
         if(tool.get() == 1) and imageUsedNum != None:
+            print(prevTool, tool.get())
+            if(prevTool == 0):
+                print("here")
+                graphUsed.parent = []
+                h,w,d = imageUsed.shape
+                graphUsed.dijkstra(seed_y*w+seed_x)
+                dijkstraComplete = True
+                prevTool = 1
             if dijkstraComplete and not selectionComplete:
                 scissoring(x,y,imageUsed, imageOG, imageUsedNum, graphUsed, allPaths)
-
 
 def drawImage(IMAGE, imageNumber):
     global src_img
@@ -391,57 +392,57 @@ def drawImage(IMAGE, imageNumber):
 def openSrc():
     global IMAGE1
     global IMAGE1_OG
+    global IMAGE1_EDIT
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE1 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     IMAGE1_OG = IMAGE1.copy()
+    IMAGE1_EDIT = IMAGE1.copy()
     IMAGE1_EDGES = initializeDijkstra(IMAGE1, "img1")
     drawImage(IMAGE1, "img1")
 
+def resetGlobals():
+    global allPaths
+    global seed_x
+    global seed_y
+    global dijkstraComplete
+    global selectionComplete
+    
+    selectionComplete = False
+    dijkstraComplete = False
+    seed_x = None
+    seed_y = None
+    allPaths = []
+    
+    
 def openDest():
     global IMAGE2
     global IMAGE2_OG
+    global IMAGE2_EDIT
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     IMAGE2_OG = IMAGE2.copy()
+    IMAGE2_EDIT = IMAGE2.copy()
     #IMAGE2_EDGES = initializeDijkstra(IMAGE2, "img2")
     drawImage(IMAGE2, "img2")
 
 def resetSrc():
+    resetGlobals()
     global IMAGE1
     global IMAGE1_OG
-    global allPaths
     global selectedPix
-    global seed_x
-    global seed_y
-    global selectionComplete
-    global dijkstraComplete
-    selectionComplete = False
-    dijkstraComplete = False
-    seed_x = None
-    seed_y = None
-    IMAGE1 = IMAGE1_OG.copy()
-    allPaths = []
     selectedPix = []
+    IMAGE1 = IMAGE1_OG.copy()
     drawImage(IMAGE1, "img1")
 
 def resetDest():
+    resetGlobals()
     global IMAGE2
     global IMAGE2_OG
-    global allPaths
     global selectedPix
-    global seed_x
-    global seed_y
-    global selectionComplete
-    global dijkstraComplete
-    selectionComplete = False
-    dijkstraComplete = False
-    seed_x = None
-    seed_y = None
-    IMAGE2 = IMAGE2_OG.copy()
-    allPaths = []
     selectedPix = []
+    IMAGE2 = IMAGE2_OG.copy()
     drawImage(IMAGE2, "img2")
 
 def edgesSrc():
@@ -468,9 +469,9 @@ b1 = Radiobutton(f1,
                 variable=tool, 
                 value=0).pack(side="left")
 b2 = Radiobutton(f1, 
-                text="Inteligent Scissoring",
+                text= "Intelligent Scissoring",
                 padx = 20, 
-                variable=tool, 
+                variable= tool, 
                 value=1).pack(side="left")
 b3 = Radiobutton(f1, 
                 text="Color Fill Select",
