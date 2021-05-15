@@ -13,7 +13,6 @@ class FloodFill():
         while not len(toFill) == 0:
             (x,y) = toFill.pop()
             loc = y*width + x
-            #print(loc)
             if (loc in pathList) or y < 0 or x < 0 or x >= width or y >= height or (loc in self.selectedCells):
                 continue
             self.selectedCells.append(loc)

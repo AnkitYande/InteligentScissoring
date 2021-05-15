@@ -273,7 +273,7 @@ def left_click(eventorigin):
                 for i in allPaths:
                     pix_y = i // w
                     pix_x = i - pix_y*w
-                    imageUsed[pix_y][pix_x] = (0,0,255)
+                    imageUsed[pix_y][pix_x] = (255,0,0)
                 selectionComplete = True
                 
                 drawImage(imageUsed, imageUsedNum)
@@ -326,7 +326,6 @@ def right_click(eventorigin):
         if not selectionComplete and imageUsedNum != None:
             h,w,d = imageUsed.shape
             if tool.get() == 0:
-                print(allPaths[0])
                 pix_y = allPaths[0] // w
                 pix_x = allPaths[0] - pix_y*w
                 polygonSelection(pix_x, pix_y, imageUsed, imageUsedNum, allPaths)
