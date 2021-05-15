@@ -113,7 +113,7 @@ def copy(image, x, y):
     f = FloodFill(w,h)
     f.fill(allPaths, x, y, w, h)
     selectedPix = f.selectedCells
-    selectedPix.sort()
+    # selectedPix.sort()
     print("copying completed")
     
 def paste(imgDest, img, imgEdit, imageNumber, x, y):
@@ -169,9 +169,13 @@ def runDijkstra(x, y, IMAGE, imageNumber, g, allPaths):
     print("New seed at:", x,y, seed)
     
     i = seed
+    tempPaths = []
     while(not len(g.parent) == 0 and g.parent[i] != -1):
-        allPaths.append(i)
+        tempPaths.append(i)
         i = g.parent[i]
+    
+    tempPaths.reverse()
+    allPaths += tempPaths
 
     print("performing dijkstra")
     g.parent = []
@@ -247,6 +251,8 @@ def left_click(eventorigin):
             focus.set(2)
 
         if not selectionComplete:
+            if(allPaths):
+                print(allPaths[0])
             if tool.get() == 0 and imageUsedNum != None:
                 polygonSelection(x,y, imageUsed, imageUsedNum, allPaths)
                 prevTool = 0
@@ -320,6 +326,7 @@ def right_click(eventorigin):
         if not selectionComplete and imageUsedNum != None:
             h,w,d = imageUsed.shape
             if tool.get() == 0:
+                print(allPaths[0])
                 pix_y = allPaths[0] // w
                 pix_x = allPaths[0] - pix_y*w
                 polygonSelection(pix_x, pix_y, imageUsed, imageUsedNum, allPaths)
@@ -364,7 +371,7 @@ def mouse_motion(eventorigin):
             graphUsed = g2
 
         if(tool.get() == 1) and imageUsedNum != None:
-            if(prevTool == 0):
+            if(prevTool == 0 and graphUsed != None and seed_x != None):
                 graphUsed.parent = []
                 h,w,d = imageUsed.shape
                 graphUsed.dijkstra(seed_y*w+seed_x)
@@ -391,7 +398,9 @@ def openSrc():
     global IMAGE1
     global IMAGE1_OG
     global IMAGE1_EDIT
-    resetGlobals()
+    global seed_x
+    global seed_y
+    seed_x = seed_y = None
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE1 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
@@ -404,13 +413,15 @@ def openDest():
     global IMAGE2
     global IMAGE2_OG
     global IMAGE2_EDIT
-    resetGlobals()
+    global seed_x
+    global seed_y
+    seed_x = seed_y = None
     root.filename = filedialog.askopenfilename(initialdir="./imgs", title="Select A File", filetypes=(("jpg files", "*.jpg"),("png files", "*.png")))
     img = cv.imread(root.filename)
     IMAGE2 = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     IMAGE2_OG = IMAGE2.copy()
     IMAGE2_EDIT = IMAGE2.copy()
-    #IMAGE2_EDGES = initializeDijkstra(IMAGE2, "img2")
+    IMAGE2_EDGES = initializeDijkstra(IMAGE2, "img2")
     drawImage(IMAGE2, "img2")
 
 def resetGlobals():
