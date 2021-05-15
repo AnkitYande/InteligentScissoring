@@ -9,8 +9,7 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
     
     # The line is X-axis dominant
     if (dy_abs <= dx_abs): 
-        # Line is drawn left to right
-        if (dx >= 0):
+        if (dx >= 0): # Line is drawn left to right
             x = x1 
             y = y1 
             xe = x2
@@ -19,15 +18,12 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
             y = y2 
             xe = x1
         
-        #print(x, y) # Draw first pixel
         loc = y*width + x
         allPaths.append( loc )
         
-        # Rasterize the line
         i = 0
         while (x < xe):
             x = x + 1
-            # Deal with octants...
             if (px < 0):
                 px = px + 2 * dy_abs
             else :
@@ -36,9 +32,7 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
                 else:
                     y = y - 1
                 px = px + 2 * (dy_abs - dx_abs)
-            # Draw pixel from line span at
-            # currently rasterized position
-            # print(x, y)
+   
             loc = y*width + x
             allPaths.append( loc )
             i += 1
@@ -55,15 +49,12 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
             y = y2 
             ye = y1
 
-        # print(x, y) # Draw first pixel
         loc = y*width + x
         allPaths.append( loc )
         
-        # Rasterize the line
         i = 0
         while(y < ye):
             y = y + 1
-            # Deal with octants...
             if (py <= 0):
                 py = py + 2 * dx_abs
             else:
@@ -73,9 +64,6 @@ def bresenham(x1,y1,x2, y2, width, height, allPaths):
                     x = x - 1
                 py = py + 2 * (dx_abs - dy_abs)
 
-            # Draw pixel from line span at
-            # currently rasterized position
-            # print(x, y)
             loc = y*width + x
             allPaths.append( loc )
             i += 1
