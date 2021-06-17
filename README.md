@@ -1,9 +1,16 @@
-# graphicsFinalProj
+# Inteligent Scissoring for Image Composition
 Final Project by Ankit Yande (asy364) and Nathan Gates (nag2486) for CS354.
 
 Video Demo can be found at: https://youtu.be/UlC1-5gkNfI
 
 Formal Report writeup can be found at: https://docs.google.com/document/d/15cI-ifh9AzsKH278Pd6mD-1tUbTExsjSYxVRVDPWQsM/edit?usp=sharing 
+
+## Description:
+This project explores taking selections of an object for the purpose of creating image compositions. The first selection method we developed is the polygon selection tool which uses Bresenham's line algorithm to interpolate between mouse clicks. The second selection method is the color selection tool which uses a Flood Fill algorithm to select all the pixels around a seed pixel that have a similar HSV to st seed. 
+
+The final and main selection method is Intelligent Scissoring. For this method, we first created an edge detection algorithm using the Canny Edge Detector. This involved converting the image to grayscale, applying a gaussian blur to the image, and then convoluting over the image with Horizontal and Vertical Sobel Operators. The results of these operators were then averaged to have a selection of all the edges. From here we could interpret the resulting image as a cost graph and used Dijkstra's algorithm to find the shortest path between a seed and the current mouse's position. Because the image is processed such that the edges have the lowest cost, the algorithm will be able to intelligently snap to the edges of the subject in an image. 
+
+From here the user can create a selection of a subject from a closed path and copy/paste the image to a new buffer. All of this can be done from our GUI written with Tkinter.
 
 ## To Build and Run:
 Install Required libraries: tkinter, filedialog, pillow, OpenCV, and NumPy
